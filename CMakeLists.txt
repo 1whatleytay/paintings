@@ -5,11 +5,22 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(external)
 
-add_executable(analyze-true analyze-true.cpp)
-target_link_libraries(analyze-true PRIVATE fmt stb)
+find_package(CURL REQUIRED)
 
-add_executable(analyze-hue analyze-hue.cpp)
-target_link_libraries(analyze-hue PRIVATE fmt stb nlohmann_json CLI11)
+add_executable(paintings
+    include/paintings/analysis.h
+    include/paintings/colors.h
+    include/paintings/image.h
+    include/paintings/options.h
+    include/paintings/pool.h
 
-add_executable(create-sample create-sample.cpp)
-target_link_libraries(create-sample PRIVATE fmt csv2 CLI11)
+    src/analysis.cpp
+    src/colors.cpp
+    src/image.cpp
+    src/options.cpp
+    src/pool.cpp
+
+    src/main.cpp)
+
+target_include_directories(paintings PRIVATE include)
+target_link_libraries(paintings PRIVATE fmt stb nlohmann_json CLI11 CURL::libcurl csv2)

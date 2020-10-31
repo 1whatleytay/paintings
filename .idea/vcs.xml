@@ -3,7 +3,11 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$/.." vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/CLI11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/CLI11/tests/mesonTest/subprojects/CLI11" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/csv2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/fmt" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/json" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/stb" vcs="Git" />
   </component>
 </project>

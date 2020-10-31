@@ -1,6 +1,7 @@
 set(FMT_TEST FALSE)
 set(CSV2_BUILD_TESTS FALSE)
 set(CLI11_BUILD_TESTS FALSE)
+set(JSON_BuildTests FALSE)
 
 add_subdirectory(fmt)
 add_subdirectory(csv2)
