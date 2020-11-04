@@ -1,6 +1,19 @@
 #include <paintings/colors.h>
 
+#include <cmath>
 #include <algorithm>
+
+size_t HSL::classify() const {
+    if (lightness < 0.03) {
+        return 6; // black
+    } else if (lightness > 0.9) {
+        return 7; // white
+    } else if (saturation < 0.15) {
+        return 8; // gray
+    } else {
+        return static_cast<size_t>(std::fmod(hue + 30.0, 360.0) / 60.0);
+    }
+}
 
 HSL::HSL(const RGB &rgb) {
     double r = static_cast<double>(rgb.red) / 255.0;

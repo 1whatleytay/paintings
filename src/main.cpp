@@ -193,6 +193,21 @@ void workerThread(SampleContext *context) {
     }
 }
 
+std::vector<AnalysisResult> runSample(const Options &options, const std::vector<size_t> &ids) {
+    SampleContext context(ids, options.sampleSize, options.url);
+
+    std::vector<std::thread> threads;
+    threads.reserve(options.threads);
+
+    for (size_t b = 0; b < options.threads; b++)
+        threads.emplace_back(workerThread, &context);
+
+    for (std::thread &thread : threads)
+        thread.join();
+
+    return context.results;
+}
+
 int main(int count, const char **args) {
     try {
         Options options(count, args);
@@ -200,76 +215,113 @@ int main(int count, const char **args) {
         fmt::print("Downloading IDs...\n");
         std::vector<size_t> ids = getIds(concatURL(options.url, "/search" + options.search));
 
-        std::vector<AnalysisPool> pools;
-        pools.reserve(options.sampleCount);
+        if (options.singleSample) {
+            fmt::print("Starting Single Sample");
 
-        for (size_t a = 0; a < options.sampleCount; a++) {
-            fmt::print("Starting Sample {}", a + 1);
-            SampleContext context(ids, options.sampleSize, options.url);
-
-            std::vector<std::thread> threads;
-            threads.reserve(options.threads);
-
-            for (size_t b = 0; b < options.threads; b++)
-                threads.emplace_back(workerThread, &context);
-
-            for (std::thread &thread : threads)
-                thread.join();
-
-            pools.emplace_back(context.results);
+            std::vector<AnalysisResult> sample = runSample(options, ids);
 
             std::cout << std::endl;
-        }
 
-        fmt::print("Done.\n");
+            if (options.output.empty()) {
+                for (size_t a = 0; a < sample.size(); a++)
+                    fmt::print("# Object {}\n{}\n", a + 1, sample[a].toString());
+            } else {
+                fmt::print("Serializing...\n");
+                std::ofstream stream(options.output);
+                csv2::Writer writer(stream);
 
-        if (options.output.empty()) {
-            for (size_t a = 0; a < pools.size(); a++)
-                fmt::print("# Sample {}\n{}\n", a + 1, pools[a].toString());
+                std::vector<std::vector<std::string>> file;
+
+                size_t size = 0;
+
+                {
+                    auto &header = file.emplace_back();
+                    header.emplace_back("Object #");
+                    header.emplace_back("# Pixels");
+
+                    pushTable(header, "Frequencies");
+                    pushTable(header, "Normalized");
+
+                    size = header.size();
+                }
+
+                for (size_t a = 0; a < sample.size(); a++) {
+                    const auto &result = sample[a];
+
+                    auto &row = file.emplace_back();
+                    row.reserve(size);
+
+                    row.emplace_back(std::to_string(a + 1));
+                    row.emplace_back(std::to_string(result.numPixels));
+
+                    pushTableValues(row, result.sampleFrequency);
+                    pushTableValues(row, result.normalized);
+                }
+
+                writer.write_rows(file);
+            }
         } else {
-            fmt::print("Serializing...\n");
-            std::ofstream stream(options.output);
-            csv2::Writer writer(stream);
+            std::vector<AnalysisPool> pools;
+            pools.reserve(options.sampleCount);
 
-            std::vector<std::vector<std::string>> file;
+            for (size_t a = 0; a < options.sampleCount; a++) {
+                fmt::print("Starting Sample {}", a + 1);
 
-            size_t size = 0;
+                pools.emplace_back(runSample(options, ids));
 
-            {
-                auto &header = file.emplace_back();
-                header.emplace_back("Sample #");
-                header.emplace_back("# Pictures");
-                header.emplace_back("# Pixels");
-
-                pushTable(header, "Frequencies");
-                pushTable(header, "Raw");
-                pushTable(header, "Average");
-                pushTable(header, "Min");
-                pushTable(header, "Max");
-                pushTable(header, "S.D.");
-
-                size = header.size();
+                std::cout << std::endl;
             }
 
-            for (size_t a = 0; a < pools.size(); a++) {
-                const auto &pool = pools[a];
+            fmt::print("Done.\n");
 
-                auto &row = file.emplace_back();
-                row.reserve(size);
+            if (options.output.empty()) {
+                for (size_t a = 0; a < pools.size(); a++)
+                    fmt::print("# Sample {}\n{}\n", a + 1, pools[a].toString());
+            } else {
+                fmt::print("Serializing...\n");
+                std::ofstream stream(options.output);
+                csv2::Writer writer(stream);
 
-                row.emplace_back(std::to_string(a + 1));
-                row.emplace_back(std::to_string(pool.totalPictures));
-                row.emplace_back(std::to_string(pool.totalPixels));
+                std::vector<std::vector<std::string>> file;
 
-                pushTableValues(row, pool.rawFrequency);
-                pushTableValues(row, pool.rawNormalized);
-                pushTableValues(row, pool.avgNormal);
-                pushTableValues(row, pool.minNormal);
-                pushTableValues(row, pool.maxNormal);
-                pushTableValues(row, pool.standardDeviation);
+                size_t size = 0;
+
+                {
+                    auto &header = file.emplace_back();
+                    header.emplace_back("Sample #");
+                    header.emplace_back("# Pictures");
+                    header.emplace_back("# Pixels");
+
+                    pushTable(header, "Frequencies");
+                    pushTable(header, "Raw");
+                    pushTable(header, "Average");
+                    pushTable(header, "Min");
+                    pushTable(header, "Max");
+                    pushTable(header, "S.D.");
+
+                    size = header.size();
+                }
+
+                for (size_t a = 0; a < pools.size(); a++) {
+                    const auto &pool = pools[a];
+
+                    auto &row = file.emplace_back();
+                    row.reserve(size);
+
+                    row.emplace_back(std::to_string(a + 1));
+                    row.emplace_back(std::to_string(pool.totalPictures));
+                    row.emplace_back(std::to_string(pool.totalPixels));
+
+                    pushTableValues(row, pool.rawFrequency);
+                    pushTableValues(row, pool.rawNormalized);
+                    pushTableValues(row, pool.avgNormal);
+                    pushTableValues(row, pool.minNormal);
+                    pushTableValues(row, pool.maxNormal);
+                    pushTableValues(row, pool.standardDeviation);
+                }
+
+                writer.write_rows(file);
             }
-
-            writer.write_rows(file);
         }
     } catch (const std::runtime_error &e) {
         fmt::print("ERROR: {}\n", e.what());

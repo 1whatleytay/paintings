@@ -43,17 +43,19 @@ AnalysisResult::AnalysisResult(const ImageData &image) {
         const RGB &color = colors[a];
         HSL hsl(color);
 
-        if (hsl.lightness < 0.03) {
-            sampleFrequency[6]++; // black
-        } else if (hsl.lightness > 0.9) {
-            sampleFrequency[7]++; // white
-        } else if (hsl.saturation < 0.15) {
-            sampleFrequency[8]++; // gray
-        } else {
-            size_t index = std::fmod(hsl.hue + 30.0, 360.0) / 60.0;
+        sampleFrequency[hsl.classify()]++;
 
-            sampleFrequency[index]++;
-        }
+//        if (hsl.lightness < 0.03) {
+//            sampleFrequency[6]++; // black
+//        } else if (hsl.lightness > 0.9) {
+//            sampleFrequency[7]++; // white
+//        } else if (hsl.saturation < 0.15) {
+//            sampleFrequency[8]++; // gray
+//        } else {
+//            size_t index = std::fmod(hsl.hue + 30.0, 360.0) / 60.0;
+//
+//            sampleFrequency[index]++;
+//        }
     }
 
     auto normalize = [this](uint64_t i) {

@@ -7,7 +7,8 @@ add_subdirectory(external)
 
 find_package(CURL REQUIRED)
 
-add_executable(paintings
+# This is super disorganized...
+add_library(paintings-tools
     include/paintings/analysis.h
     include/paintings/colors.h
     include/paintings/image.h
@@ -18,9 +19,12 @@ add_executable(paintings
     src/colors.cpp
     src/image.cpp
     src/options.cpp
-    src/pool.cpp
+    src/pool.cpp)
+target_include_directories(paintings-tools PUBLIC include)
+target_link_libraries(paintings-tools PUBLIC fmt stb CLI11)
 
-    src/main.cpp)
+add_executable(paintings src/main.cpp)
+target_link_libraries(paintings PRIVATE nlohmann_json CURL::libcurl csv2 paintings-tools)
 
-target_include_directories(paintings PRIVATE include)
-target_link_libraries(paintings PRIVATE fmt stb nlohmann_json CLI11 CURL::libcurl csv2)
+add_executable(paintings-convert convert.cpp)
+target_link_libraries(paintings-convert paintings-tools)

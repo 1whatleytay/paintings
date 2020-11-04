@@ -10,6 +10,8 @@ struct Options {
     size_t sampleSize = 10;
     size_t sampleCount = 10;
 
+    bool singleSample = false;
+
     std::string output;
 
     Options(int count, const char **args);
