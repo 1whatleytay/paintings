@@ -13,7 +13,7 @@ Options::Options(int count, const char **args) {
     app.add_option("-n,--sample-size", sampleSize, "Size of each sample.");
     app.add_option("-c,--sample-count", sampleCount, "Number of samples to be made.");
     app.add_option("-o,--output", output, "Optional output CSV file.");
-    app.add_flag("--single", singleSample, "Run in single sample mode.");
+    app.add_flag("--raw", raw, "Whether to give all data or summary.");
 
     try {
         app.parse(count, args);

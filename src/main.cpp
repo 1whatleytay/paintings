@@ -213,18 +213,26 @@ int main(int count, const char **args) {
         Options options(count, args);
 
         fmt::print("Downloading IDs...\n");
+        fmt::print("URL: {}\n", concatURL(options.url, "/search" + options.search));
         std::vector<size_t> ids = getIds(concatURL(options.url, "/search" + options.search));
 
-        if (options.singleSample) {
-            fmt::print("Starting Single Sample");
+        if (options.raw) {
+            std::vector<std::vector<AnalysisResult>> allSamples(options.sampleCount);
 
-            std::vector<AnalysisResult> sample = runSample(options, ids);
-
-            std::cout << std::endl;
+            for (size_t a = 0; a < options.sampleCount; a++) {
+                fmt::print("Starting sample {}", a + 1);
+                allSamples[a] = runSample(options, ids);
+                std::cout << std::endl;
+            }
 
             if (options.output.empty()) {
-                for (size_t a = 0; a < sample.size(); a++)
-                    fmt::print("# Object {}\n{}\n", a + 1, sample[a].toString());
+                for (size_t a = 0; a < allSamples.size(); a++) {
+                    const auto &sample = allSamples[a];
+                    fmt::print("Sample #{}\n", a + 1);
+                    for (size_t b = 0; b < sample.size(); b++) {
+                        fmt::print("# Object {}\n{}\n", b + 1, sample[b].toString());
+                    }
+                }
             } else {
                 fmt::print("Serializing...\n");
                 std::ofstream stream(options.output);
@@ -232,10 +240,11 @@ int main(int count, const char **args) {
 
                 std::vector<std::vector<std::string>> file;
 
-                size_t size = 0;
+                size_t size;
 
                 {
                     auto &header = file.emplace_back();
+                    header.emplace_back("Sample #");
                     header.emplace_back("Object #");
                     header.emplace_back("# Pixels");
 
@@ -245,17 +254,22 @@ int main(int count, const char **args) {
                     size = header.size();
                 }
 
-                for (size_t a = 0; a < sample.size(); a++) {
-                    const auto &result = sample[a];
+                for (size_t s = 0; s < allSamples.size(); s++) {
+                    const auto &sample = allSamples[s];
 
-                    auto &row = file.emplace_back();
-                    row.reserve(size);
+                    for (size_t a = 0; a < sample.size(); a++) {
+                        const auto &result = sample[a];
 
-                    row.emplace_back(std::to_string(a + 1));
-                    row.emplace_back(std::to_string(result.numPixels));
+                        auto &row = file.emplace_back();
+                        row.reserve(size);
 
-                    pushTableValues(row, result.sampleFrequency);
-                    pushTableValues(row, result.normalized);
+                        row.emplace_back(std::to_string(s + 1));
+                        row.emplace_back(std::to_string(a + 1));
+                        row.emplace_back(std::to_string(result.numPixels));
+
+                        pushTableValues(row, result.sampleFrequency);
+                        pushTableValues(row, result.normalized);
+                    }
                 }
 
                 writer.write_rows(file);
@@ -284,7 +298,7 @@ int main(int count, const char **args) {
 
                 std::vector<std::vector<std::string>> file;
 
-                size_t size = 0;
+                size_t size;
 
                 {
                     auto &header = file.emplace_back();

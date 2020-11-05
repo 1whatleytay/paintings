@@ -10,7 +10,7 @@ struct Options {
     size_t sampleSize = 10;
     size_t sampleCount = 10;
 
-    bool singleSample = false;
+    bool raw = false;
 
     std::string output;
 
