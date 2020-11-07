@@ -131,7 +131,14 @@ void workerThread(SampleContext *context) {
             }
 
             std::string imageUrl;
-            json::parse(stream.str())["primaryImage"].get_to(imageUrl);
+            auto obj = json::parse(stream.str());
+            if (!obj.contains("primaryImage")) {
+                fmt::print("\nFailed to parse query object {}, resampling\n", objectUrl);
+                std::cout.flush();
+                continue;
+            }
+
+            obj["primaryImage"].get_to(imageUrl);
 
             if (imageUrl.empty()) {
                 fmt::print("\nFailed to find image url for query object {}, resampling\n", objectUrl);
